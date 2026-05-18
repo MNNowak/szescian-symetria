@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sześcian - osie i płaszczyzny symetrii</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #121414;
+      --panel: #1d2224;
+      --panel-2: #282e31;
+      --text: #f4efe6;
+      --muted: #bec7c3;
+      --line: #4a5551;
+      --red: #ef7771;
+      --green: #73d18a;
+      --blue: #73a9ff;
+      --gold: #e8b15d;
+      --cyan: #64c7d3;
+      --violet: #b78df2;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 10%, rgba(232, 177, 93, 0.16), transparent 30%),
+        linear-gradient(135deg, #121414 0%, #1a2022 58%, #101213 100%);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      min-height: 100vh;
+    }
+
+    .stage {
+      position: relative;
+      height: 100vh;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      scrollbar-color: var(--gold) #252b2d;
+      scrollbar-width: thin;
+    }
+
+    .stage::-webkit-scrollbar {
+      width: 14px;
+    }
+
+    .stage::-webkit-scrollbar-track {
+      background: #252b2d;
+    }
+
+    .stage::-webkit-scrollbar-thumb {
+      border: 3px solid #252b2d;
+      border-radius: 999px;
+      background: var(--gold);
+    }
+
+    .scene-content {
+      position: relative;
+      min-height: 145vh;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    canvas:active {
+      cursor: grabbing;
+    }
+
+    .hud {
+      position: absolute;
+      top: 22px;
+      left: 24px;
+      max-width: 610px;
+      pointer-events: none;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(30px, 5vw, 56px);
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    .score {
+      position: absolute;
+      left: 24px;
+      bottom: 22px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 8px;
+      background: rgba(18, 20, 20, 0.74);
+      backdrop-filter: blur(12px);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .meter {
+      width: 160px;
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #343b3d;
+    }
+
+    .meter span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--green));
+      transition: width 140ms ease;
+    }
+
+    aside {
+      height: 100vh;
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(29, 34, 36, 0.95);
+      padding: 18px;
+      overflow-y: auto;
+      scrollbar-color: var(--gold) #252b2d;
+      scrollbar-width: thin;
+    }
+
+    aside::-webkit-scrollbar {
+      width: 14px;
+    }
+
+    aside::-webkit-scrollbar-track {
+      background: #252b2d;
+    }
+
+    aside::-webkit-scrollbar-thumb {
+      border: 3px solid #252b2d;
+      border-radius: 999px;
+      background: var(--gold);
+    }
+
+    .panel-title {
+      margin: 0 0 14px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .control-group {
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .control-group:first-of-type {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    label,
+    .label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+      text-transform: uppercase;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    button,
+    .game-link {
+      min-height: 38px;
+      border: 1px solid #53615d;
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--text);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    button:hover,
+    button.active,
+    .game-link:hover {
+      border-color: var(--gold);
+      background: #3b3328;
+    }
+
+    .game-link {
+      display: grid;
+      place-items: center;
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 34px 1fr 48px;
+      gap: 10px;
+      align-items: center;
+      margin: 10px 0;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--gold);
+    }
+
+    output {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .zoom-row {
+      display: grid;
+      grid-template-columns: 38px 38px 1fr 54px;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .pan-row {
+      display: grid;
+      grid-template-columns: 34px 1fr 56px;
+      gap: 10px;
+      align-items: center;
+      margin: 10px 0;
+    }
+
+    .checks {
+      display: grid;
+      gap: 10px;
+    }
+
+    .check {
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .check input {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--gold);
+      flex: 0 0 auto;
+    }
+
+    .task {
+      padding: 12px;
+      border: 1px solid rgba(232, 177, 93, 0.42);
+      border-radius: 8px;
+      background: rgba(232, 177, 93, 0.12);
+      color: #f4e6c9;
+      line-height: 1.38;
+      font-size: 14px;
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      margin-right: 7px;
+      border-radius: 999px;
+      vertical-align: middle;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        overflow: auto;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .stage {
+        height: 66vh;
+        min-height: 66vh;
+      }
+
+      .scene-content {
+        min-height: 104vh;
+      }
+
+      aside {
+        height: auto;
+        max-height: none;
+        border-left: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .hud {
+        left: 16px;
+        right: 16px;
+      }
+
+      .score {
+        left: 16px;
+        bottom: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="stage" aria-label="Interaktywna scena symetrii sześcianu">
+      <div class="scene-content">
+        <canvas id="scene"></canvas>
+        <div class="hud">
+          <h1>Sześcian</h1>
+          <p class="subtitle">Ćwiczenie z elementów symetrii układu regularnego: osie obrotu 4-, 3- i 2-krotne oraz płaszczyzny lustrzane.</p>
+        </div>
+        <div class="score">
+          <span>Dopasowanie osi 4</span>
+          <div class="meter" aria-hidden="true"><span id="meter"></span></div>
+          <strong id="score">0%</strong>
+        </div>
+      </div>
+    </section>
+
+    <aside>
+      <h2 class="panel-title">Sterowanie</h2>
+
+      <div class="control-group">
+        <span class="label">Ruch myszką</span>
+        <div class="segmented">
+          <button class="active" data-drag-mode="free">XYZ</button>
+          <button data-drag-mode="xy">X/Y</button>
+          <button data-drag-mode="z">Z</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Obrót sześcianu</label>
+        <div class="row">
+          <span>X</span>
+          <input id="rotX" type="range" min="-180" max="180" value="-22">
+          <output id="outX">-22°</output>
+        </div>
+        <div class="row">
+          <span>Y</span>
+          <input id="rotY" type="range" min="-180" max="180" value="32">
+          <output id="outY">32°</output>
+        </div>
+        <div class="row">
+          <span>Z</span>
+          <input id="rotZ" type="range" min="-180" max="180" value="0">
+          <output id="outZ">0°</output>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Skala widoku</label>
+        <div class="zoom-row">
+          <button id="zoomOut" aria-label="Zmniejsz widok">-</button>
+          <button id="zoomIn" aria-label="Powiększ widok">+</button>
+          <input id="zoom" type="range" min="45" max="120" value="72">
+          <output id="outZoom">72%</output>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Przesunięcie obrazu</label>
+        <div class="pan-row">
+          <span>X</span>
+          <input id="panX" type="range" min="-260" max="260" value="0">
+          <output id="outPanX">0 px</output>
+        </div>
+        <div class="pan-row">
+          <span>Y</span>
+          <input id="panY" type="range" min="-220" max="220" value="0">
+          <output id="outPanY">0 px</output>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <span class="label">Widoczność</span>
+        <div class="checks">
+          <label class="check"><input id="showCube" type="checkbox" checked> sześcian</label>
+          <label class="check"><input id="showFour" type="checkbox" checked> 3 osie 4-krotne</label>
+          <label class="check"><input id="showThree" type="checkbox" checked> 4 osie 3-krotne</label>
+          <label class="check"><input id="showTwo" type="checkbox" checked> 6 osi 2-krotnych</label>
+          <label class="check"><input id="showMirrorFace" type="checkbox" checked> 3 płaszczyzny lustrzane {100}</label>
+          <label class="check"><input id="showMirrorDiag" type="checkbox" checked> 6 płaszczyzn lustrzanych {110}</label>
+          <label class="check"><input id="showGrid" type="checkbox" checked> siatka odniesienia</label>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="task">
+          Cel gry: ustaw jedną z osi 4-krotnych tak, aby była jak najbliżej kierunku patrzenia. To oś przechodząca przez środki przeciwległych ścian sześcianu.
+        </div>
+      </div>
+
+      <div class="control-group">
+        <span class="label">Legenda</span>
+        <div class="legend">
+          <span><i class="swatch" style="background: var(--red)"></i>4 - osie przez środki ścian</span>
+          <span><i class="swatch" style="background: var(--gold)"></i>3 - osie przez przeciwległe naroża</span>
+          <span><i class="swatch" style="background: var(--cyan)"></i>2 - osie przez środki przeciwległych krawędzi</span>
+          <span><i class="swatch" style="background: var(--green)"></i>m {100} - płaszczyzny równoległe do ścian</span>
+          <span><i class="swatch" style="background: var(--violet)"></i>m {110} - płaszczyzny diagonalne</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <button id="reset">Reset</button>
+      </div>
+
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#scene");
+    const ctx = canvas.getContext("2d");
+    const meter = document.querySelector("#meter");
+    const scoreLabel = document.querySelector("#score");
+    const dragButtons = [...document.querySelectorAll("[data-drag-mode]")];
+    const controls = {
+      x: document.querySelector("#rotX"),
+      y: document.querySelector("#rotY"),
+      z: document.querySelector("#rotZ"),
+      zoom: document.querySelector("#zoom"),
+      panX: document.querySelector("#panX"),
+      panY: document.querySelector("#panY"),
+      outX: document.querySelector("#outX"),
+      outY: document.querySelector("#outY"),
+      outZ: document.querySelector("#outZ"),
+      outZoom: document.querySelector("#outZoom"),
+      outPanX: document.querySelector("#outPanX"),
+      outPanY: document.querySelector("#outPanY"),
+      zoomOut: document.querySelector("#zoomOut"),
+      zoomIn: document.querySelector("#zoomIn"),
+      showCube: document.querySelector("#showCube"),
+      showFour: document.querySelector("#showFour"),
+      showThree: document.querySelector("#showThree"),
+      showTwo: document.querySelector("#showTwo"),
+      showMirrorFace: document.querySelector("#showMirrorFace"),
+      showMirrorDiag: document.querySelector("#showMirrorDiag"),
+      showGrid: document.querySelector("#showGrid"),
+      reset: document.querySelector("#reset")
+    };
+
+    const state = {
+      rotX: -22,
+      rotY: 32,
+      rotZ: 0,
+      zoom: 72,
+      panX: 0,
+      panY: 0,
+      dragMode: "free",
+      pointer: null
+    };
+
+    const cubeSize = 0.72;
+    const vertices = [
+      [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+      [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
+    ].map(p => p.map(v => v * cubeSize));
+
+    const faces = [
+      { points: [0, 1, 2, 3], pink: true },
+      { points: [4, 7, 6, 5] },
+      { points: [0, 4, 5, 1] },
+      { points: [3, 2, 6, 7] },
+      { points: [1, 5, 6, 2] },
+      { points: [0, 3, 7, 4] }
+    ];
+
+    const axesFour = [
+      { name: "4", vector: [1.8, 0, 0] },
+      { name: "4", vector: [0, 1.8, 0] },
+      { name: "4", vector: [0, 0, 1.8] }
+    ];
+
+    const axesThree = [
+      { name: "3", vector: [1.45, 1.45, 1.45] },
+      { name: "3", vector: [1.45, 1.45, -1.45] },
+      { name: "3", vector: [1.45, -1.45, 1.45] },
+      { name: "3", vector: [-1.45, 1.45, 1.45] }
+    ];
+
+    const axesTwo = [
+      { name: "2", vector: [1.55, 1.55, 0] },
+      { name: "2", vector: [1.55, -1.55, 0] },
+      { name: "2", vector: [1.55, 0, 1.55] },
+      { name: "2", vector: [1.55, 0, -1.55] },
+      { name: "2", vector: [0, 1.55, 1.55] },
+      { name: "2", vector: [0, 1.55, -1.55] }
+    ];
+
+    const mirrorFace = [
+      { name: "m", corners: [[0, -1.25, -1.25], [0, 1.25, -1.25], [0, 1.25, 1.25], [0, -1.25, 1.25]] },
+      { name: "m", corners: [[-1.25, 0, -1.25], [1.25, 0, -1.25], [1.25, 0, 1.25], [-1.25, 0, 1.25]] },
+      { name: "m", corners: [[-1.25, -1.25, 0], [1.25, -1.25, 0], [1.25, 1.25, 0], [-1.25, 1.25, 0]] }
+    ];
+
+    const mirrorDiag = [
+      { name: "m", corners: [[-1.25, -1.25, -1.25], [1.25, 1.25, -1.25], [1.25, 1.25, 1.25], [-1.25, -1.25, 1.25]] },
+      { name: "m", corners: [[-1.25, 1.25, -1.25], [1.25, -1.25, -1.25], [1.25, -1.25, 1.25], [-1.25, 1.25, 1.25]] },
+      { name: "m", corners: [[-1.25, -1.25, -1.25], [1.25, -1.25, 1.25], [1.25, 1.25, 1.25], [-1.25, 1.25, -1.25]] },
+      { name: "m", corners: [[-1.25, -1.25, 1.25], [1.25, -1.25, -1.25], [1.25, 1.25, -1.25], [-1.25, 1.25, 1.25]] },
+      { name: "m", corners: [[-1.25, -1.25, -1.25], [-1.25, 1.25, 1.25], [1.25, 1.25, 1.25], [1.25, -1.25, -1.25]] },
+      { name: "m", corners: [[-1.25, -1.25, 1.25], [-1.25, 1.25, -1.25], [1.25, 1.25, -1.25], [1.25, -1.25, 1.25]] }
+    ];
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function rad(deg) {
+      return deg * Math.PI / 180;
+    }
+
+    function rotate(point) {
+      let [x, y, z] = point;
+      const sx = Math.sin(rad(state.rotX));
+      const cx = Math.cos(rad(state.rotX));
+      const sy = Math.sin(rad(state.rotY));
+      const cy = Math.cos(rad(state.rotY));
+      const sz = Math.sin(rad(state.rotZ));
+      const cz = Math.cos(rad(state.rotZ));
+
+      [y, z] = [y * cx - z * sx, y * sx + z * cx];
+      [x, z] = [x * cy + z * sy, -x * sy + z * cy];
+      [x, y] = [x * cz - y * sz, x * sz + y * cz];
+      return [x, y, z];
+    }
+
+    function project(point) {
+      const rect = canvas.getBoundingClientRect();
+      const [x, y, z] = point;
+      const depth = 5.2;
+      const scale = Math.min(rect.width, rect.height) * 0.24 * (state.zoom / 100);
+      const factor = depth / (depth - z);
+      return {
+        x: rect.width / 2 + state.panX + x * scale * factor,
+        y: rect.height / 2 + state.panY - y * scale * factor,
+        z,
+        factor
+      };
+    }
+
+    function drawGrid(rect) {
+      if (!controls.showGrid.checked) return;
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,255,255,0.07)";
+      ctx.lineWidth = 1;
+      const gap = 42;
+      for (let x = rect.width / 2 % gap; x < rect.width; x += gap) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, rect.height);
+        ctx.stroke();
+      }
+      for (let y = rect.height / 2 % gap; y < rect.height; y += gap) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(rect.width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawPlane(plane, fill, stroke) {
+      const points3 = plane.corners.map(rotate);
+      const points2 = points3.map(project);
+      const center = points2.reduce((acc, p) => ({ x: acc.x + p.x / points2.length, y: acc.y + p.y / points2.length }), { x: 0, y: 0 });
+
+      ctx.save();
+      ctx.beginPath();
+      points2.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1.2;
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = stroke;
+      ctx.font = "700 13px Segoe UI, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(plane.name, center.x, center.y);
+      ctx.restore();
+    }
+
+    function drawPlanes() {
+      const planes = [];
+      if (controls.showMirrorFace.checked) {
+        mirrorFace.forEach(plane => planes.push({ plane, fill: "rgba(115, 209, 138, 0.16)", stroke: "rgba(115, 209, 138, 0.7)" }));
+      }
+      if (controls.showMirrorDiag.checked) {
+        mirrorDiag.forEach(plane => planes.push({ plane, fill: "rgba(183, 141, 242, 0.12)", stroke: "rgba(183, 141, 242, 0.62)" }));
+      }
+      planes
+        .map(item => ({
+          ...item,
+          zAvg: item.plane.corners.reduce((sum, p) => sum + rotate(p)[2], 0) / item.plane.corners.length
+        }))
+        .sort((a, b) => a.zAvg - b.zAvg)
+        .forEach(item => drawPlane(item.plane, item.fill, item.stroke));
+    }
+
+    function drawCube() {
+      if (!controls.showCube.checked) return;
+      const rotated = vertices.map(rotate);
+      const faceData = faces.map(face => {
+        const pts3 = face.points.map(i => rotated[i]);
+        return {
+          pts2: pts3.map(project),
+          zAvg: pts3.reduce((sum, p) => sum + p[2], 0) / pts3.length,
+          pink: face.pink
+        };
+      }).sort((a, b) => a.zAvg - b.zAvg);
+
+      for (const face of faceData) {
+        const light = 42 + Math.round((face.zAvg + 1) * 14);
+        ctx.beginPath();
+        face.pts2.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fillStyle = face.pink
+          ? `hsla(330, 86%, ${Math.max(58, Math.min(76, light + 12))}%, 0.82)`
+          : `hsla(205, 20%, ${Math.max(34, Math.min(66, light))}%, 0.64)`;
+        ctx.strokeStyle = "rgba(250,255,250,0.56)";
+        ctx.lineWidth = 1.3;
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    function drawLine3d(vector, color, name, dashed = false) {
+      const start = project(rotate(vector.map(v => -v)));
+      const end = project(rotate(vector));
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = dashed ? 2 : 3;
+      ctx.setLineDash(dashed ? [8, 6] : []);
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+
+      const angle = Math.atan2(end.y - start.y, end.x - start.x);
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(end.x, end.y);
+      ctx.lineTo(end.x - 11 * Math.cos(angle - 0.45), end.y - 11 * Math.sin(angle - 0.45));
+      ctx.lineTo(end.x - 11 * Math.cos(angle + 0.45), end.y - 11 * Math.sin(angle + 0.45));
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = "700 13px Segoe UI, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#101213";
+      ctx.beginPath();
+      ctx.arc(end.x + 16, end.y - 14, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = color;
+      ctx.fillText(name, end.x + 16, end.y - 14);
+      ctx.restore();
+    }
+
+    function drawAxes() {
+      if (controls.showFour.checked) {
+        axesFour.forEach(axis => drawLine3d(axis.vector, "#ef7771", axis.name));
+      }
+      if (controls.showThree.checked) {
+        axesThree.forEach(axis => drawLine3d(axis.vector, "#e8b15d", axis.name, true));
+      }
+      if (controls.showTwo.checked) {
+        axesTwo.forEach(axis => drawLine3d(axis.vector, "#64c7d3", axis.name, true));
+      }
+    }
+
+    function updateScore() {
+      const candidates = [[1, 0, 0], [0, 1, 0], [0, 0, 1]].map(rotate);
+      const score = Math.round(Math.max(...candidates.map(v => Math.abs(v[2]))) * 100);
+      meter.style.width = `${score}%`;
+      scoreLabel.textContent = `${score}%`;
+    }
+
+    function updateOutputs() {
+      controls.x.value = state.rotX;
+      controls.y.value = state.rotY;
+      controls.z.value = state.rotZ;
+      controls.zoom.value = state.zoom;
+      controls.panX.value = state.panX;
+      controls.panY.value = state.panY;
+      controls.outX.textContent = `${Math.round(state.rotX)}°`;
+      controls.outY.textContent = `${Math.round(state.rotY)}°`;
+      controls.outZ.textContent = `${Math.round(state.rotZ)}°`;
+      controls.outZoom.textContent = `${Math.round(state.zoom)}%`;
+      controls.outPanX.textContent = `${Math.round(state.panX)} px`;
+      controls.outPanY.textContent = `${Math.round(state.panY)} px`;
+    }
+
+    function draw() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      drawGrid(rect);
+      drawPlanes();
+      drawCube();
+      drawAxes();
+      updateScore();
+      requestAnimationFrame(draw);
+    }
+
+    function setDragMode(mode) {
+      state.dragMode = mode;
+      dragButtons.forEach(button => {
+        button.classList.toggle("active", button.dataset.dragMode === mode);
+      });
+    }
+
+    function normalize(value) {
+      let next = value;
+      while (next > 180) next -= 360;
+      while (next < -180) next += 360;
+      return next;
+    }
+
+    canvas.addEventListener("pointerdown", event => {
+      canvas.setPointerCapture(event.pointerId);
+      state.pointer = { x: event.clientX, y: event.clientY };
+    });
+
+    canvas.addEventListener("pointermove", event => {
+      if (!state.pointer) return;
+      const dx = event.clientX - state.pointer.x;
+      const dy = event.clientY - state.pointer.y;
+      if (event.shiftKey) {
+        state.panX = clamp(state.panX + dx, Number(controls.panX.min), Number(controls.panX.max));
+        state.panY = clamp(state.panY + dy, Number(controls.panY.min), Number(controls.panY.max));
+      } else if (state.dragMode === "free") {
+        state.rotY += dx * 0.45;
+        state.rotX -= dy * 0.45;
+      } else if (state.dragMode === "xy") {
+        state.rotY += dx * 0.5;
+        state.rotX -= dy * 0.5;
+      } else {
+        state.rotZ += dx * 0.55;
+      }
+      state.rotX = normalize(state.rotX);
+      state.rotY = normalize(state.rotY);
+      state.rotZ = normalize(state.rotZ);
+      state.pointer = { x: event.clientX, y: event.clientY };
+      updateOutputs();
+    });
+
+    canvas.addEventListener("pointerup", () => {
+      state.pointer = null;
+    });
+
+    canvas.addEventListener("pointercancel", () => {
+      state.pointer = null;
+    });
+
+    [controls.x, controls.y, controls.z].forEach(input => {
+      input.addEventListener("input", () => {
+        state.rotX = Number(controls.x.value);
+        state.rotY = Number(controls.y.value);
+        state.rotZ = Number(controls.z.value);
+        updateOutputs();
+      });
+    });
+
+    controls.zoom.addEventListener("input", () => {
+      state.zoom = Number(controls.zoom.value);
+      updateOutputs();
+    });
+
+    controls.zoomOut.addEventListener("click", () => {
+      state.zoom = Math.max(Number(controls.zoom.min), state.zoom - 8);
+      updateOutputs();
+    });
+
+    controls.zoomIn.addEventListener("click", () => {
+      state.zoom = Math.min(Number(controls.zoom.max), state.zoom + 8);
+      updateOutputs();
+    });
+
+    [controls.panX, controls.panY].forEach(input => {
+      input.addEventListener("input", () => {
+        state.panX = Number(controls.panX.value);
+        state.panY = Number(controls.panY.value);
+        updateOutputs();
+      });
+    });
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    dragButtons.forEach(button => {
+      button.addEventListener("click", () => setDragMode(button.dataset.dragMode));
+    });
+
+    controls.reset.addEventListener("click", () => {
+      state.rotX = -22;
+      state.rotY = 32;
+      state.rotZ = 0;
+      state.zoom = 72;
+      state.panX = 0;
+      state.panY = 0;
+      setDragMode("free");
+      updateOutputs();
+    });
+
+    window.addEventListener("resize", resize);
+    resize();
+    updateOutputs();
+    draw();
+  </script>
+</body>
+</html>
